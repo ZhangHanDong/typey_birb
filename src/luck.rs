@@ -1,6 +1,7 @@
 use rand::prelude::*;
 use std::ops::Range;
 
+// 上下障碍物之间空隙的大小规格
 #[derive(Debug)]
 enum NextGapKind {
     VerySmall,
@@ -21,7 +22,7 @@ impl NextGapKind {
     }
 }
 pub struct NextGapBag {
-    rng: StdRng,
+    rng: StdRng, // 使用 rand 的 RNG(随机数发生器)
     index: usize,
     range: Range<f32>,
     previous_value: f32,
@@ -29,7 +30,7 @@ pub struct NextGapBag {
 }
 impl NextGapBag {
     pub fn new(range: Range<f32>, initial_value: f32) -> Self {
-        let mut rng = StdRng::from_entropy();
+        let mut rng = StdRng::from_entropy(); // 创建新的随机种子
 
         let mut contents = vec![
             NextGapKind::VerySmall,
@@ -42,7 +43,7 @@ impl NextGapBag {
             NextGapKind::VeryLarge,
         ];
 
-        contents.shuffle(&mut rng);
+        contents.shuffle(&mut rng); // 随机获取 gap 的大小
 
         // ease them into it
 
@@ -63,6 +64,8 @@ impl NextGapBag {
         }
     }
 }
+
+// 实现一个随机获取gap的迭代器
 impl Iterator for NextGapBag {
     type Item = f32;
     fn next(&mut self) -> Option<Self::Item> {

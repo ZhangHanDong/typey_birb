@@ -1,13 +1,15 @@
 use bevy::{prelude::*, utils::HashSet};
 use rand::prelude::*;
 
+// 输入plugin
 pub struct TypingPlugin;
 
+// 单词列表
 pub struct WordList {
     words: Vec<String>,
     index: usize,
 }
-
+// 从 crate::words::WORDS 里随机获取单词
 impl Default for WordList {
     fn default() -> Self {
         let mut words = crate::words::WORDS
@@ -21,6 +23,7 @@ impl Default for WordList {
 }
 
 impl WordList {
+    // 找到下一个单词
     pub fn find_next_word(&mut self, not: &HashSet<char>) -> String {
         loop {
             let next = self.advance_word();
@@ -80,12 +83,14 @@ impl TypingTarget {
 
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
+        // 初始化单词资源
         app.init_resource::<WordList>()
             .add_system(new_words)
             .add_system(keyboard);
     }
 }
 
+// 获取新的单词
 fn new_words(
     mut events: EventReader<crate::Action>,
     mut query: Query<(Entity, &mut TypingTarget)>,
@@ -109,11 +114,14 @@ fn new_words(
     }
 }
 
+// 键盘输入
 fn keyboard(
+    // EventReader 接收输入字符
     mut char_input_events: EventReader<ReceivedCharacter>,
     mut query: Query<(Entity, &mut TypingTarget)>,
     mut events: EventWriter<crate::Action>,
 ) {
+    // 判断收到的字符是否匹配显示单词的每个字符
     for event in char_input_events.iter() {
         let mut ok = false;
 

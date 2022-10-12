@@ -13,13 +13,22 @@ const GROUND_WIDTH: f32 = 40.;
 const GROUND_VERTICES_X: u32 = 30;
 const GROUND_VERTICES_Z: u32 = 20;
 
+// 设置游戏背景组件
 #[derive(Component)]
 pub struct Ground;
 
+
+// 定义 GroundBundle 类型，用于在后面创建Ground组件的实体
+// 这里使用 pbr 渲染：
+// PBR（Physically Based Rendering），基于物理的渲染。
+// 它是利用真实世界的原理和理论，通过各种数学方法推导或简化或模拟出一系列渲染方程，并依赖计算机硬件和图形API渲染出拟真画面的技术
+// 基于现阶段的知识水平和硬件水平，还不能渲染跟真实世界完全一致的效果，只能一定程序上模拟接近真实世界的渲染画面，
+// 故而叫基于物理的渲染（Physically Based Rendering），而非物理渲染（Physical Rendering）
+// 参考资料： https://www.cnblogs.com/timlly/p/10631718.html#211-pbr%E6%A6%82%E5%BF%B5
 #[derive(Bundle)]
 pub struct GroundBundle {
     #[bundle]
-    pbr: PbrBundle,
+    pbr: PbrBundle, // Pbr 渲染 bundle
     ground: Ground,
 }
 
@@ -44,11 +53,14 @@ impl GroundBundle {
     }
 }
 
+// 定义 Gound插件
 pub struct GroundPlugin;
 
 impl Plugin for GroundPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
+            // 在 AppState::Playing 状态更新的时候可能的行为：
+            // 移动背景，并不断生成新的背景
             SystemSet::on_update(AppState::Playing)
                 .with_system(ground_movement.label("ground_movement"))
                 .with_system(spawn_ground.after("ground_movement")),
@@ -57,22 +69,27 @@ impl Plugin for GroundPlugin {
     }
 }
 
+// 移动背景
 fn ground_movement(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform), With<Ground>>,
     time: Res<Time>,
     speed: Res<Speed>,
 ) {
+    // 背景平移增量：按时间增量和当前速度计算
     let delta = time.delta_seconds() * speed.current;
 
     for (entity, mut transform) in query.iter_mut() {
+        // 背景平移
         transform.translation.x -= delta;
+        // 如果平移超出范围则消除相关实体
         if transform.translation.x < -60. {
             commands.entity(entity).despawn_recursive();
         }
     }
 }
 
+// 生成 ground 
 fn spawn_ground(
     mut commands: Commands,
     meshes: ResMut<Assets<Mesh>>,
@@ -91,10 +108,11 @@ fn spawn_ground(
         .unwrap()
         .translation
         .x;
-
+    // 创建实体
     commands.spawn_bundle(GroundBundle::new(max_x + GROUND_LENGTH, meshes, materials));
 }
 
+// 初始化ground
 fn setup(
     mut commands: Commands,
     meshes: ResMut<Assets<Mesh>>,
@@ -103,6 +121,7 @@ fn setup(
     commands.spawn_bundle(GroundBundle::new(0., meshes, materials));
 }
 
+// 绘制背景网格
 pub fn ground_mesh(size: Vec2, num_vertices: UVec2) -> Mesh {
     let num_quads = num_vertices - UVec2::splat(1);
     let offset = size / -2.;

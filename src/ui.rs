@@ -4,6 +4,7 @@ use crate::{
 };
 use bevy::{prelude::*, utils::HashSet};
 
+// 定义 ui 插件
 pub struct UiPlugin;
 
 #[derive(Component)]
@@ -16,38 +17,46 @@ struct EndScreen;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         // We need the font to have been loaded for this to work.
-        app.add_system(update_targets)
-            .add_system(update_score)
+        app.add_system(update_targets)// 增加 update_targets system
+            .add_system(update_score) 
+            // 在进入 AppState::EndScreen 状态时，执行 death_screen
             .add_system_set(SystemSet::on_enter(AppState::EndScreen).with_system(death_screen))
+            // 在结束 AppState::Loading 状态时，执行 setup
             .add_system_set(SystemSet::on_exit(AppState::Loading).with_system(setup))
+            // 在进入AppState::StartScreen 状态时，执行 start_screen
             .add_system_set(SystemSet::on_enter(AppState::StartScreen).with_system(start_screen))
+            // 在结束 AppState::StartScreen 状态时，执行 despawn_start_screen
             .add_system_set(
                 SystemSet::on_exit(AppState::StartScreen).with_system(despawn_start_screen),
             )
+            // 在结束 AppState::EndScreen 状态时，执行 despawn_dead_screen
             .add_system_set(
                 SystemSet::on_exit(AppState::EndScreen).with_system(despawn_dead_screen),
             );
     }
 }
 
+// 递归消除 dead screen时 UI实体
 fn despawn_dead_screen(mut commands: Commands, query: Query<Entity, With<EndScreen>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
 
+// 递归消除 start screen时 UI实体
 fn despawn_start_screen(mut commands: Commands, query: Query<Entity, With<StartScreen>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
 
+// 使用 bevy_ui 中提供的 NodeBundle 和 TextBundle Widget 来创建 UI 实体
 fn start_screen(
     mut commands: Commands,
     gltf_assets: Res<GltfAssets>,
     font_assets: Res<FontAssets>,
 ) {
-    // rival
+    // rival 竞争角色 创建实体
 
     commands
         .spawn_bundle(SceneBundle {
@@ -57,9 +66,9 @@ fn start_screen(
                 .with_rotation(Quat::from_euler(EulerRot::XYZ, -0.1, -2.5, -0.8)),
             ..default()
         })
-        .insert(StartScreen);
+        .insert(StartScreen); // 插入开始屏幕组件
 
-    // text
+    // text 创建文本组件，使用 NodeBundle 作为容器，基于 Flexbox 布局
 
     let container = commands
         .spawn_bundle(NodeBundle {
@@ -81,7 +90,7 @@ fn start_screen(
         })
         .insert(StartScreen)
         .id();
-
+    // 创建背景 Flexbox 容器
     let bg = commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -97,6 +106,7 @@ fn start_screen(
         })
         .id();
 
+    // 创建开始文本 Flexbox item，本游戏是以输入文字 start 开始的
     let starttext = commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -149,10 +159,12 @@ fn start_screen(
         .insert(TypingTarget::new_whole("start".into(), vec![Action::Start]))
         .id();
 
+    // 创建实体
     commands.entity(container).push_children(&[bg]);
     commands.entity(bg).push_children(&[starttext, starttarget]);
 }
 
+// 游戏结束后的屏幕 ui 
 fn death_screen(
     mut commands: Commands,
     gltf_assets: Res<GltfAssets>,
@@ -181,8 +193,8 @@ fn death_screen(
         })
         .insert(EndScreen);
 
-    // text
-
+    // text 创建文本 Flexbox item
+    
     let container = commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -203,7 +215,7 @@ fn death_screen(
         })
         .insert(EndScreen)
         .id();
-
+    // 创建 背景 文本 Flexbox item
     let bg = commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -218,7 +230,7 @@ fn death_screen(
             ..Default::default()
         })
         .id();
-
+    // 创建文本 Flexbox item
     let deadtext = commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -238,7 +250,7 @@ fn death_screen(
             ..Default::default()
         })
         .id();
-
+    // 创建 重试text Flexbox item
     let retrytext = commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -274,15 +286,18 @@ fn death_screen(
     commands.entity(bg).push_children(&[deadtext, retrytext]);
 }
 
+// 更新分数
 fn update_score(mut query: Query<&mut Text, With<ScoreText>>, score: Res<Score>) {
     if !score.is_changed() {
         return;
     }
     for mut text in query.iter_mut() {
+        // 查询文本ui 显示分数
         text.sections[1].value = format!("{}", score.0);
     }
 }
 
+// 更新目标单词
 fn update_targets(
     query: Query<(Entity, &TypingTarget), Changed<TypingTarget>>,
     mut text_query: Query<&mut Text>,
@@ -297,6 +312,7 @@ fn update_targets(
     }
 }
 
+// 初始化上下文本框中显示的单词
 fn setup(mut commands: Commands, mut wordlist: ResMut<WordList>, font_assets: Res<FontAssets>) {
     // root node
     let root = commands
